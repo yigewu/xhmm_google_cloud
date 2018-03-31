@@ -1,0 +1,1 @@
+grep -v uuid /home/yigewu2012/pca_table.20171019.wclin.unprocessed.tsv > pca_table.20171019.wclin.unprocessed.nohead.tsv

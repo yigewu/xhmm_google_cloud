@@ -1,0 +1,67 @@
+name: xhmm
+description: Run xhmm on WES files
+
+# Define the resources needed for this pipeline.
+resources:
+  zones:
+  - us-west1-a
+
+  # Create a data disk that is attached to the VM and destroyed when the
+  # pipeline terminates.
+  disks:
+  - name: datadisk
+    autoDelete: True
+
+    # Within the Docker container, specify a mount point for the disk.
+    mountPoint: /mnt/data
+
+# Specify the Docker image to use along with the command
+docker:
+  imageName: yigewu/xhmm:google_test1
+
+  # The Pipelines API will create the input directory when localizing files,
+  # but does not create the output directory.
+  cmd: >
+    mkdir /mnt/data/output &&
+    cd /mnt/data/input &&
+    /usr/bin/java -jar /gatk3/GenomeAnalysisTK.jar \
+    -T GCContentByInterval -L GRCh37.ensGene.coding.exon.interval_list \
+    -R /mnt/data/input/GRCh37-lite.fa \
+    -o /mnt/data/output/DATA.locus_GC.txt &&
+    cat /mnt/data/output/DATA.locus_GC.txt | awk '{if ($2 < 0.1 || $2 > 0.9) print $1}' > /mnt/data/output/extreme_gc_targets.txt
+
+# The Pipelines API currently supports GCS paths, along with patterns (globs),
+# but it doesn't directly support a list of files being passed as a single input
+# parameter ("gs://bucket/foo.bam gs://bucket/bar.bam").
+# for testing purpose I'll upload the Human reference genome files and example bam files
+inputParameters:
+- name: exonTargets
+  description: the path for the exon targets
+  localCopy:
+    path: input/
+    disk: datadisk
+- name: refFasta
+  description: the path for the Human reference genome fasta file
+  localCopy:
+    path: input/
+    disk: datadisk
+- name: refIndex
+  description: the path for the Human reference genome index file
+  localCopy:
+    path: input/
+    disk: datadisk
+- name: refDict
+  description: the path for the Human reference genome dictionary file
+  localCopy:
+    path: input/
+    disk: datadisk
+
+# By specifying an outputParameter, we instruct the pipelines API to
+# copy /mnt/data/output/* to the Cloud Storage location specified in
+# the pipelineArgs (see below).
+outputParameters:
+- name: outputPath
+  description: output path
+  localCopy:
+    path: output/*
+    disk: datadisk

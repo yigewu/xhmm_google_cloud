@@ -1,0 +1,71 @@
+name: xhmm_same_filter
+description: Filters original read-depth data to be the same as filtered, normalized data
+
+# Define the resources needed for this pipeline.
+resources:
+  zones:
+  - us-west1-a
+
+  # Create a data disk that is attached to the VM and destroyed when the
+  # pipeline terminates.
+  disks:
+  - name: datadisk
+    autoDelete: True
+
+    # Within the Docker container, specify a mount point for the disk.
+    mountPoint: /mnt/data
+  minimumRamGb: 100
+  minimumCpuCores: 4
+
+# Specify the Docker image to use along with the command
+docker:
+  imageName: yigewu/xhmm:google_test1
+
+  # The Pipelines API will create the input directory when localizing files,
+  # but does not create the output directory.
+  cmd: >
+    mkdir /mnt/data/output &&
+    ls -lrt /mnt/data/input > /mnt/data/output/input.files.txt &&
+    /statgen-xhmm-cc14e528d909/xhmm --matrix -r /mnt/data/input/DATA.RD.txt --excludeTargets /mnt/data/input/DATA.filtered_centered.RD.txt.filtered_targets.txt --excludeTargets /mnt/data/input/DATA.PCA_normalized.filtered.sample_zscores.RD.txt.filtered_targets.txt --excludeSamples /mnt/data/input/DATA.filtered_centered.RD.txt.filtered_samples.txt --excludeSamples /mnt/data/input/DATA.PCA_normalized.filtered.sample_zscores.RD.txt.filtered_samples.txt -o /mnt/data/output/DATA.same_filtered.RD.txt &&
+    ls -lrt /mnt/data/output > /mnt/data/output/output.files.txt
+
+# The Pipelines API currently supports GCS paths, along with patterns (globs),
+# but it doesn't directly support a list of files being passed as a single input
+# parameter ("gs://bucket/foo.bam gs://bucket/bar.bam").
+# for testing purpose I'll upload the Human reference genome files and example bam files
+inputParameters:
+- name: RDtxt
+  description: the path for the merged depth coverage file
+  localCopy:
+    path: input/
+    disk: datadisk
+- name: ExtremeExcludedTargets
+  description: the path for the excluded targets filtering out the extreme gc content targets and low complexity targets
+  localCopy:
+    path: input/
+    disk: datadisk
+- name: ExtremeExcludedSamples
+  description: the path for the excluded samples filtering out the extreme gc content targets and low complexity targets
+  localCopy:
+    path: input/
+    disk: datadisk
+- name: zScoreExcludedTargets
+  description: the path for the excluded targets filtering out the extreme zScore
+  localCopy:
+    path: input/
+    disk: datadisk
+- name: zScoreExcludedSamples
+  description: the path for the excluded samples filtering out the extreme zScore
+  localCopy:
+    path: input/
+    disk: datadisk
+
+# By specifying an outputParameter, we instruct the pipelines API to
+# copy /mnt/data/output/* to the Cloud Storage location specified in
+# the pipelineArgs (see below).
+outputParameters:
+- name: outputPath
+  description: output path
+  localCopy:
+    path: output/*
+    disk: datadisk

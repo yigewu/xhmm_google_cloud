@@ -1,0 +1,1 @@
+ls ../depth_of_coverage7887/list2submit/ | grep pca > list2examine.rescued

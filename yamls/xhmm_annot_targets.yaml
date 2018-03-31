@@ -1,0 +1,49 @@
+name: xhmm_annot_targets
+description: annotate exome targets with gene name
+
+resources:
+  zones:
+  - us-west1-a
+
+  disks:
+  - name: datadisk
+    autoDelete: True
+
+    mountPoint: /mnt/data
+
+docker:
+  imageName: yigewu/xhmm_gatk_plinkseq:test2
+
+  cmd: >
+    mkdir /mnt/data/output &&
+    cd /mnt/data/input &&
+    wget http://psychgen.u.hpc.mssm.edu/plinkseq_resources/hg19/locdb.gz &&
+    gunzip locdb.gz &&
+    cat GRCh37.ensGene.coding.exon.interval_list | awk '{print $1":"$2"-"$3}' | grep -v @ > EXOME4pseq.interval_list &&
+    /plinkseq-0.10/pseq . loc-intersect --group refseq --locdb locdb --file EXOME4pseq.interval_list --out /mnt/data/output/annotated_targets.refseq 
+    #&&
+    #sort -k1  data/output/annotated_targets.refseq.loci >  data/output/annotated_targets.refseq.loci.sort &&
+    #sort -k3 DATA.xcnv > DATA.xcnv.sort &&
+    #awk -F '.' '{print $1"-"$3}' annotated_targets.refseq.loci.sort | cut -f 2 -d “r”  > annotated_targets.refseq.loci2merge &&
+    #join -1 1 -2 3 -o 2.1,2.2,2.3,2.4,1.3 annotated_targets.refseq.loci2merge DATA.xcnv.sort > DATA.xcnv.annot.txt &&
+    #join -1 1 -2 3 -o 2.1,2.2,2.3,2.4,1.3,2.5,2.6,2.7,2.8,2.9,2.10,2.11,2.12,2.13,2.14,2.15 <(sort -k1 /mnt/data/output/annotated_targets.refseq.loci) <(sort -k3 DATA.xcnv)
+
+
+inputParameters:
+- name: exonTargets
+  description: the path for the exon targets
+  localCopy:
+    path: input/
+    disk: datadisk
+- name: xcnvFile
+  description: the path for DATA.xcnv
+  localCopy:
+    path: input/
+    disk: datadisk
+
+outputParameters:
+- name: outputPath
+  description: output path
+  localCopy:
+    path: output/*
+    disk: datadisk

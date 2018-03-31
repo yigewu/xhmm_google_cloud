@@ -1,0 +1,3 @@
+#!/bin/bash
+
+gcloud alpha genomics pipelines run --pipeline-file /home/yigewu2012/xhmm/stacks/xhmm_genotype_cnv.yaml --inputs zScore.filtered.RD=gs://dinglab/yige/outputs4xhmm/zScore_center/DATA.PCA_normalized.filtered.sample_zscores.RD.txt,same.filtered.RD=gs://dinglab/yige/outputs4xhmm/same_filter/DATA.same_filtered.RD.txt,refFasta=gs://dinglab/reference/GRCh37-lite.fa,refIndex=gs://dinglab/reference/GRCh37-lite.fa.fai,refDict=gs://dinglab/reference/GRCh37-lite.dict,xcnv=gs://dinglab/yige/outputs4xhmm/discover_cnv/DATA.xcnv --outputs outputPath=gs://dinglab/yige/outputs4xhmm/genotype_cnv --logging gs://dinglab/yige/logs4xhmm/genotype_cnv --disk-size datadisk:80

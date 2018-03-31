@@ -1,0 +1,47 @@
+name: xhmm
+description: Run xhmm on WES files
+
+# Define the resources needed for this pipeline.
+resources:
+  zones:
+  - us-west1-a
+
+  # Create a data disk that is attached to the VM and destroyed when the
+  # pipeline terminates.
+  disks:
+  - name: datadisk
+    autoDelete: True
+
+    # Within the Docker container, specify a mount point for the disk.
+    mountPoint: /mnt/data
+
+# Specify the Docker image to use along with the command
+docker:
+  imageName: yigewu/xhmm_gatk_plinkseq:test2
+
+  # The Pipelines API will create the input directory when localizing files,
+  # but does not create the output directory.
+  cmd: >
+    mkdir /mnt/data/output &&
+    cd /mnt/data/input &&
+    wget http://psychgen.u.hpc.mssm.edu/plinkseq_resources/hg19/seqdb.hg19.gz &&
+    gunzip seqdb.hg19.gz &&
+    cat GRCh37.ensGene.coding.exon.interval_list | awk '{print $1":"$2"-"$3}' | grep -v @ > EXOME4pseq.interval_list &&
+    /statgen-xhmm-cc14e528d909/sources/scripts/interval_list_to_pseq_reg EXOME4pseq.interval_list > /mnt/data/output/EXOME.targets.reg &&
+    /plinkseq-0.10/pseq . loc-load --locdb /mnt/data/output/EXOME.targets.LOCDB --file /mnt/data/output/EXOME.targets.reg --group targets --out /mnt/data/output/EXOME.targets.LOCDB.loc-load &&
+    /plinkseq-0.10/pseq . loc-stats --locdb /mnt/data/output/EXOME.targets.LOCDB --group targets --seqdb seqdb.hg19 | awk '{if (NR > 1) print $_}' | sort -k1 -g | awk '{print $10}' | paste EXOME4pseq.interval_list - | awk '{print $1"\t"$2}' > /mnt/data/output/DATA.locus_complexity.txt &&
+    cat /mnt/data/output/DATA.locus_complexity.txt | awk '{if ($2 > 0.25) print $1}' > /mnt/data/output/low_complexity_targets.txt
+
+inputParameters:
+- name: exonTargets
+  description: the path for the exon targets
+  localCopy:
+    path: input/
+    disk: datadisk
+
+outputParameters:
+- name: outputPath
+  description: output path
+  localCopy:
+    path: output/*
+    disk: datadisk

@@ -1,0 +1,55 @@
+name: xhmm_combine_depth
+description: combine depth of coverage files
+
+# Define the resources needed for this pipeline.
+resources:
+  zones:
+  - us-west1-a
+
+  # Create a data disk that is attached to the VM and destroyed when the
+  # pipeline terminates.
+  disks:
+  - name: datadisk
+    autoDelete: True
+    mountPoint: /mnt/data
+  minimumRamGb: 100
+  minimumCpuCores: 20
+
+# Specify the Docker image to use along with the command
+docker:
+  imageName: yigewu/xhmm:google_test1
+
+  # The Pipelines API will create the input directory when localizing files,
+  # but does not create the output directory.
+  cmd: >
+    mkdir /mnt/data/output &&
+    cd /mnt/data/input/ &&
+    cat pca_table.20171019.wclin.tsv | grep -v uuid | awk '{print $1".sample_interval_summary"}' > /mnt/data/output/input2process.txt &&
+    /statgen-xhmm-cc14e528d909/xhmm --mergeGATKdepths -o /mnt/data/output/RD.pca_table.20172019.txt  --GATKdepthsList /mnt/data/output/input2process.txt
+  
+inputParameters:
+- name: normalDepth
+  description: the .sample_interval_summary files for 9401 whitelist samples
+  localCopy:
+    path: input/
+    disk: datadisk
+- name: rescuedDepth
+  description: the .sample_interval_summary files for rescued samples
+  localCopy:
+    path: input/
+    disk: datadisk
+- name: sampleList
+  description: table containing the UUID, TCGA barcode and original file paths of the 10,467 prioritized, white-list, clinical-data available sample (best bam file for that patient) with final set of VCFs
+  localCopy:
+    path: input/
+    disk: datadisk
+
+# By specifying an outputParameter, we instruct the pipelines API to
+# copy /mnt/data/output/* to the Cloud Storage location specified in
+# the pipelineArgs (see below).
+outputParameters:
+- name: outputPath
+  description: output path
+  localCopy:
+    path: output/*
+    disk: datadisk
